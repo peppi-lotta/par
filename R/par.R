@@ -92,6 +92,8 @@ calculate_paf <- function(x) {
 #' The function samples from the Dirichlet distribution to estimate the
 #' posterior distribution.
 #'
+#' @importFrom MCMCpack rdirichlet
+#'
 #' @param x A vector containing the values of a, b, c, and d
 #' in this order. Where
 #' a: The count of rows where both exposure and outcome are 1.
@@ -121,10 +123,10 @@ calculate_paf <- function(x) {
 #'
 #' @export
 calculate_bayesian_ci <- function(
-  x,
-  interval = 0.95,
-  prior = c(1, 1, 1, 1),
-  sample_count = 10000
+    x,
+    interval = 0.95,
+    prior = c(1, 1, 1, 1),
+    sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -136,7 +138,7 @@ calculate_bayesian_ci <- function(
 
   # Sample from the Dirichlet distribution 10,000 times
   # + prior is to add the prior distribution's effect
-  samples <- MCMCpack::rdirichle(
+  samples <- MCMCpack::rdirichlet(
     sample_count,
     c(a + prior[1],
       b + prior[2],
@@ -192,9 +194,9 @@ calculate_bayesian_ci <- function(
 #'
 #' @export
 calculate_bootstrap_ci <- function(
-  x,
-  interval = 0.95,
-  sample_count = 10000
+    x,
+    interval = 0.95,
+    sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -209,7 +211,7 @@ calculate_bootstrap_ci <- function(
   p_00 <- d / n
 
   # Initialize samples dataframe
-  samples <- t(MCMCpack::rmultinom(sample_count, n, c(p_11, p_10, p_01, p_00)))
+  samples <- t(rmultinom(sample_count, n, c(p_11, p_10, p_01, p_00)))
 
   par_samples <- apply(samples, 1, calculate_par)
 
@@ -227,9 +229,14 @@ calculate_bootstrap_ci <- function(
 
 ######################################################################
 ######################################################################
-print("Compiling functions")
-calculate_bayesian_ci <- cmpfun(calculate_bayesian_ci)
-calculate_bootstrap_ci <- cmpfun(calculate_bootstrap_ci)
-calculate_par <- cmpfun(calculate_par)
-calculate_paf <- cmpfun(calculate_paf)
-extract_abcd <- cmpfun(extract_abcd)
+#' Compile all functions
+#' This function compiles all functions in the package. This is useful for
+#' optimizing the performance of the functions.
+#' @export
+compile_all <- function() {
+  calculate_bayesian_ci <- cmpfun(calculate_bayesian_ci)
+  calculate_bootstrap_ci <- cmpfun(calculate_bootstrap_ci)
+  calculate_par <- cmpfun(calculate_par)
+  calculate_paf <- cmpfun(calculate_paf)
+  extract_abcd <- cmpfun(extract_abcd)
+}
