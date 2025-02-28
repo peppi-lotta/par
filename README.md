@@ -4,12 +4,8 @@ This code base provides functions to calculate populational attributinal risk. T
 ## Use 
 
 ```
-devtools::install_github("peppi-lotta/par")
-```
-
-```
-if (!require(PAR)) {
+if (!require(par)) {
   devtools::install_github("peppi-lotta/par")
-  library(PAR)
+  library(par)
 }
 ```
