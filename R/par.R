@@ -1,6 +1,3 @@
-library(MCMCpack)
-library(compiler)
-
 ######################################################################
 #' This function extracts values from the specified exposure and outcome
 #' columns in the provided dataset. This is done by counting the number of
@@ -36,6 +33,7 @@ extract_abcd <- function(data, exposure_col, outcome_col) {
     x_0e0d = x_0e0d
   ))
 }
+
 ######################################################################
 ######################################################################
 #'
@@ -69,6 +67,7 @@ calculate_par <- function(x) {
   par <- (a + c) / (a + b + c + d) - c / (c + d)
   return(par)
 }
+
 ######################################################################
 ######################################################################
 calculate_paf <- function(x) {
@@ -85,6 +84,7 @@ calculate_paf <- function(x) {
   paf <- ( pos_d_count - c / (c + d) ) / pos_d_count
   return(paf)
 }
+
 ######################################################################
 ######################################################################
 #' This function calculates the population attributable risk's (PAR) credibility
@@ -121,10 +121,10 @@ calculate_paf <- function(x) {
 #'
 #' @export
 calculate_bayesian_ci <- function(
-    x,
-    interval = 0.95,
-    prior = c(1, 1, 1, 1),
-    sample_count = 10000
+  x,
+  interval = 0.95,
+  prior = c(1, 1, 1, 1),
+  sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -136,7 +136,7 @@ calculate_bayesian_ci <- function(
 
   # Sample from the Dirichlet distribution 10,000 times
   # + prior is to add the prior distribution's effect
-  samples <- rdirichlet(
+  samples <- MCMCpack::rdirichle(
     sample_count,
     c(a + prior[1],
       b + prior[2],
@@ -162,6 +162,7 @@ calculate_bayesian_ci <- function(
     confidence_interval[2]
   )))
 }
+
 ######################################################################
 ######################################################################
 #' This function calculates the population attributable risk's (PAR) credibility
@@ -191,9 +192,9 @@ calculate_bayesian_ci <- function(
 #'
 #' @export
 calculate_bootstrap_ci <- function(
-    x,
-    interval = 0.95,
-    sample_count = 10000
+  x,
+  interval = 0.95,
+  sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -208,7 +209,7 @@ calculate_bootstrap_ci <- function(
   p_00 <- d / n
 
   # Initialize samples dataframe
-  samples <- t(rmultinom(sample_count, n, c(p_11, p_10, p_01, p_00)))
+  samples <- t(MCMCpack::rmultinom(sample_count, n, c(p_11, p_10, p_01, p_00)))
 
   par_samples <- apply(samples, 1, calculate_par)
 
@@ -224,11 +225,11 @@ calculate_bootstrap_ci <- function(
   return(matrix(c(confidence_interval[1], confidence_interval[2])))
 }
 
-if ("compiler" %in% loadedNamespaces()) {
-  print("Compiling functions")
-  calculate_bayesian_ci <- cmpfun(calculate_bayesian_ci)
-  calculate_bootstrap_ci <- cmpfun(calculate_bootstrap_ci)
-  calculate_par <- cmpfun(calculate_par)
-  calculate_paf <- cmpfun(calculate_paf)
-  extract_abcd <- cmpfun(extract_abcd)
-}
+######################################################################
+######################################################################
+print("Compiling functions")
+calculate_bayesian_ci <- cmpfun(calculate_bayesian_ci)
+calculate_bootstrap_ci <- cmpfun(calculate_bootstrap_ci)
+calculate_par <- cmpfun(calculate_par)
+calculate_paf <- cmpfun(calculate_paf)
+extract_abcd <- cmpfun(extract_abcd)
