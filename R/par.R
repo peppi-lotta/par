@@ -93,6 +93,7 @@ calculate_paf <- function(x) {
 #' posterior distribution.
 #'
 #' @importFrom MCMCpack rdirichlet
+
 #'
 #' @param x A vector containing the values of a, b, c, and d
 #' in this order. Where
