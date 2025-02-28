@@ -36,7 +36,6 @@ extract_abcd <- function(data, exposure_col, outcome_col) {
     x_0e0d = x_0e0d
   ))
 }
-
 ######################################################################
 ######################################################################
 #'
@@ -70,7 +69,22 @@ calculate_par <- function(x) {
   par <- (a + c) / (a + b + c + d) - c / (c + d)
   return(par)
 }
+######################################################################
+######################################################################
+calculate_paf <- function(x) {
+  a <- as.numeric(x[1])
+  b <- as.numeric(x[2])
+  c <- as.numeric(x[3])
+  d <- as.numeric(x[4])
 
+  pos_d_count <- (a + c) / (a + b + c + d)
+
+  if (c + d == 0 || a + b + c + d == 0) {
+    return(0)
+  }
+  paf <- ( pos_d_count - c / (c + d) ) / pos_d_count
+  return(paf)
+}
 ######################################################################
 ######################################################################
 #' This function calculates the population attributable risk's (PAR) credibility
@@ -107,10 +121,10 @@ calculate_par <- function(x) {
 #'
 #' @export
 calculate_bayesian_ci <- function(
-  x,
-  interval = 0.95,
-  prior = c(1, 1, 1, 1),
-  sample_count = 10000
+    x,
+    interval = 0.95,
+    prior = c(1, 1, 1, 1),
+    sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -148,13 +162,38 @@ calculate_bayesian_ci <- function(
     confidence_interval[2]
   )))
 }
-
 ######################################################################
 ######################################################################
+#' This function calculates the population attributable risk's (PAR) credibility
+#' interval using a Bootstrap
+#' The function samples from the Multinomial distribution to estimate the
+#' posterior distribution.
+#'
+#' @param x A vector containing the values of a, b, c, and d
+#' in this order. Where
+#' a: The count of rows where both exposure and outcome are 1.
+#' b: The count of rows where exposure is 1 and outcome is 0.
+#' c: The count of rows where exposure is 0 and outcome is 1.
+#' d: The count of rows where both exposure and outcome are 0.
+#' @param interval Interval for the confidence interval (default is 0.95).
+#' Possible values are between 0 and 1.
+#' @param sample_count Number of samples to draw from the Dirichlet
+#' distribution.
+#'
+#' @return Matrix containing the lower and upper bounds of the credibility
+#' interval. The first column contains the lower bound and the second column
+#' contains the upper bound.
+#'
+#' @examples
+#' # Example usage:
+#' x <- extract_abcd(data, "exposure", "outcome")
+#' calculate_bootstrap_ci(x, 0.99, 5000)
+#'
+#' @export
 calculate_bootstrap_ci <- function(
-  x,
-  interval = 0.95,
-  sample_count = 10000
+    x,
+    interval = 0.95,
+    sample_count = 10000
 ) {
   x <- as.numeric(x)
   a <- x[1]
@@ -185,8 +224,6 @@ calculate_bootstrap_ci <- function(
   return(matrix(c(confidence_interval[1], confidence_interval[2])))
 }
 
-######################################################################
-######################################################################
 if ("compiler" %in% loadedNamespaces()) {
   print("Compiling functions")
   calculate_bayesian_ci <- cmpfun(calculate_bayesian_ci)
