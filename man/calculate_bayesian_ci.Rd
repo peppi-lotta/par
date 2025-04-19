@@ -8,6 +8,7 @@ The function samples from the Dirichlet distribution to estimate the
 posterior distribution.}
 \usage{
 calculate_bayesian_ci(
+  type,
   x,
   interval = 0.95,
   prior = c(1, 1, 1, 1),
@@ -15,6 +16,9 @@ calculate_bayesian_ci(
 )
 }
 \arguments{
+\item{type}{String, type of the measure to calculate. Possible values are
+"par" and "paf".}
+
 \item{x}{A vector containing the values of a, b, c, and d
 in this order. Where
 a: The count of rows where both exposure and outcome are 1.
@@ -51,7 +55,7 @@ posterior distribution.
 }
 \examples{
 # Example usage:
-x <- extract_abcd(data, "exposure", "outcome")
-calculate_bayesian_ci(x, 0.99, c(1, 1, 0.001, 0.001), 5000)
+x <- extract_abcd(data, "exposure_col_name", "outcome_col_name")
+calculate_bayesian_ci("par", x, 0.99, c(1, 1, 0.001, 0.001), 5000)
 
 }

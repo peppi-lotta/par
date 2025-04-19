@@ -7,9 +7,12 @@ interval using a Bootstrap
 The function samples from the Multinomial distribution to estimate the
 posterior distribution.}
 \usage{
-calculate_bootstrap_ci(x, interval = 0.95, sample_count = 10000)
+calculate_bootstrap_ci(type, x, interval = 0.95, sample_count = 10000)
 }
 \arguments{
+\item{type}{String, type of the measure to calculate. Possible values are
+"par" and "paf".}
+
 \item{x}{A vector containing the values of a, b, c, and d
 in this order. Where
 a: The count of rows where both exposure and outcome are 1.
@@ -37,6 +40,6 @@ posterior distribution.
 \examples{
 # Example usage:
 x <- extract_abcd(data, "exposure", "outcome")
-calculate_bootstrap_ci(x, 0.99, 5000)
+calculate_bootstrap_ci("par", x, 0.99, 5000)
 
 }
