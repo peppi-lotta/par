@@ -194,22 +194,3 @@ print(paste("Program end time:", end_time))
 file_name <- paste0("data_prior_010111.csv")
 write.csv(final_results, file_name)
 ```
-
-```{r}
-# Specify the file path
-file_path <- "./data_prior_1111.csv"
-
-# Read the data
-data <- read.csv(file_path)
-
-# Add the interval and prior columns
-data$interval <- 0.95  # Set the interval value
-data$prior <- "1,1,1,1"  # Set the prior value as a string
-
-# Save the updated data back to a CSV file
-write.csv(data, "data_prior_1111_updated.csv", row.names = FALSE)
-
-# Print the first few rows to verify
-print(head(data))
-
-```
