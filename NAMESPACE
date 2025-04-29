@@ -3,6 +3,8 @@
 export(calculate_bayesian_ci)
 export(calculate_bootstrap_ci)
 export(calculate_par)
+export(calculate_standardized_bayesian_ci)
+export(calculate_standardized_bootstrap_ci)
 export(compile_all)
 export(extract_abcd)
 importFrom(MCMCpack,rdirichlet)

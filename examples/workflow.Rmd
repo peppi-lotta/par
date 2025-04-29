@@ -1,0 +1,174 @@
+# Workflow
+
+## Import and source the necessary packages and functions
+
+```{r}
+install.packages("MCMCpack")
+install.packages("dplyr")
+install.packages("data.table")
+install.packages("devtools")
+```
+
+```{r}
+library(MCMCpack)
+library(dplyr)
+library(compiler)
+library(data.table)
+library(devtools)
+```
+
+```{r}
+devtools::install_github("peppi-lotta/par")
+library(par)
+```
+
+## Read the data and calculate BMI
+
+```{r}
+# Specify the file path.
+file_path <- "./data.csv"
+
+# Use read.csv() function to read the file
+data <- read.csv(file_path)
+
+# Randomly select 1000 rows
+data <- data[sample(nrow(data), 1000), ]
+
+# Calculate BMI and add 1 or 0
+data <- data %>%
+  mutate(over_weight = ifelse(weight/((height/100)^2) > 24.99, 1, 0))
+```
+
+## Calculate the population attributable risk and confidence interval
+
+```{r}
+exposure_col <- "over_weight"
+outcome_col <- "cardio"
+
+table <- table(
+data[[exposure_col]],
+data[[outcome_col]],
+dnn = c(
+    exposure_col,
+    outcome_col
+))
+print(table)
+
+# Extract the values of a, b, c, and d from the data
+x <- extract_abcd(data, exposure_col, outcome_col)
+print(x)
+
+# Calculate the population attributable risk
+par <- calculate_par(x)
+cat("PAR: ", par, "\n")
+```
+
+```{r}
+interval = 0.95
+prior = c(1, 1, 1, 1)
+sample_count = 10000
+# Calculate the confidence interval
+bay_ci <- calculate_bayesian_ci(
+  "par",
+  x,
+  interval,
+  prior,
+  sample_count
+)
+
+cat("Confidence Interval:\n")
+print(bay_ci)
+```
+
+## Bootstrap the population attributable risk and confidence interval
+
+```{r}
+# Calculate the confidence interval
+boot_ci <- calculate_bootstrap_ci(
+  "par",
+  x,
+  interval,
+  10000
+)
+
+cat("Confidence Interval:\n")
+print(boot_ci)
+```
+
+## Standardisation
+```{r}
+unique_ages <- unique(data[["age"]])
+unique_ages <- sort(unique_ages)
+print(unique_ages)
+
+# sort data into age groups
+data <- data %>%
+  mutate(
+    Age_group = case_when(
+      age/365  < 20 ~ "0-19",
+      age/365 >= 20 & age/365  < 30 ~ "20-29",
+      age/365  >= 30 & age/365  < 40 ~ "30-39",
+      age/365  >= 40 & age/365  < 50 ~ "40-49",
+      age/365  >= 50 & age/365  < 60 ~ "50-59",
+      age/365  >= 60 & age/365  < 70 ~ "50-59",
+      age/365  >= 70 ~ "70+"
+    )
+  )
+print(head(data))
+```
+
+```{r}
+# Loop over age groups
+age_groups <- unique(data$Age_group)
+par <- 0
+bay_lower_bound <- 0
+bay_upper_bound <- 0
+boot_lower_bound <- 0
+boot_upper_bound <- 0
+
+for (age_group in age_groups) {
+  exposure_col <- "over_weight"
+  outcome_col <- "cardio"
+  
+  # Filter data for the current age group
+  age_data <- data[data$Age_group == age_group, ]
+
+  # Set age_data sample count as weight value
+  weight <- nrow(age_data)
+  
+  # Calculate the population attributable risk
+  x <- extract_abcd(age_data, exposure_col, outcome_col)
+  par <- par + calculate_par(x)*weight
+  
+  # Calculate the confidence interval
+  bay_ci <- calculate_bayesian_ci(
+    "par",
+    x,
+    interval,
+    prior,
+    sample_count
+  )
+  # calculate weigthted confidence interval lower and upper bounds
+  bay_lower_bound <- bay_lower_bound + bay_ci[1] * weight
+  bay_upper_bound <- bay_upper_bound + bay_ci[2] * weight
+  
+    # Calculate the confidence interval
+  boot_ci <- calculate_bootstrap_ci(
+    "par",
+    x,
+    interval,
+    sample_count
+  )
+  # calculate weigthted confidence interval lower and upper bounds
+  boot_lower_bound <- boot_lower_bound + boot_ci[1] * weight
+  boot_upper_bound <- boot_upper_bound + boot_ci[2] * weight
+}
+# Print the confidence interval
+cat("par:")
+print(par/nrow(data))
+cat("Confidence Interval:\n")
+cat("Bayes:\n")
+print(c(bay_lower_bound/nrow(data), bay_upper_bound/nrow(data)))
+cat("Bootstrap:\n")
+print(c(boot_lower_bound/nrow(data), boot_upper_bound/nrow(data)))
+```
