@@ -300,24 +300,24 @@ calculate_standardized_bayesian_ci <- function(
     prior = c(1, 1, 1, 1),
     sample_count = 10000
 ) {
-  groups <- unique(data$standarisation_col)
+  groups <- unique(data[[standarisation_col]])
   par <- 0
   lower_bound <- 0
   upper_bound <- 0
 
   for (group in groups) {
-    group_data <- data[data$standarisation_col == group, ]
+    group_data <- data[data[[standarisation_col]] == group, ]
     weight <- nrow(group_data)
 
     x <- extract_abcd(group_data, exposure_col, outcome_col)
     par <- par + calculate_par(x) * weight
 
     bay_ci <- calculate_bayesian_ci(
-      type,
-      x,
-      interval,
-      prior,
-      sample_count
+      type = type,
+      x = x,
+      interval = interval,
+      prior = prior,
+      sample_count = sample_count
     )
     lower_bound <- lower_bound + bay_ci[1] * weight
     upper_bound <- upper_bound + bay_ci[2] * weight
@@ -377,13 +377,13 @@ calculate_standardized_bootstrap_ci <- function(
     interval,
     sample_count
 ) {
-  groups <- unique(data$standarisation_col)
+  groups <- unique(data[[standarisation_col]])
   par <- 0
   lower_bound <- 0
   upper_bound <- 0
 
   for (group in groups) {
-    group_data <- data[data$standarisation_col == group, ]
+    group_data <- data[data[[standarisation_col]] == group, ]
     weight <- nrow(group_data)
 
     x <- extract_abcd(group_data, exposure_col, outcome_col)
