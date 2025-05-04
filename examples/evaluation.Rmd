@@ -63,7 +63,7 @@ get_probabilities_2x2_table <- function( p, q, e ) {
 ```{r}
 # Set the interval and prior values
 interval <- 0.95
-prior <- c(0.1, 0.1, 1, 1)
+prior <- c(1, 0.1, 1, 0.1)
 
 # Create a data frame with all combinations of the values
 combinations <- expand.grid(
@@ -191,6 +191,168 @@ end_time <- Sys.time()
 print(paste("Program end time:", end_time))
 
 # Write the final results to a CSV file
-file_name <- paste0("data_prior_010111.csv")
+file_name <- paste0("data_prior_1-0.1-1-0.1.csv")
 write.csv(final_results, file_name)
+```
+
+## Evaluation figures
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(GGally)
+
+# Read the merged data
+data <- read_csv(
+  "./merged_data.csv",
+  col_types = cols(
+    prior = col_character(),
+    V1 = col_double(),
+    p = col_double(),
+    q = col_double(),
+    e = col_double(),
+    n = col_double(),
+    p_11 = col_double(),
+    p_10 = col_double(),
+    p_01 = col_double(),
+    p_00 = col_double(),
+    actual_par = col_double(),
+    bayes_ci_mean_length = col_double(),
+    bayes_ci_coverage = col_double(),
+    boot_ci_mean_length = col_double(),
+    boot_ci_coverage = col_double(),
+    interval = col_double()
+  )
+)
+
+# Convert 'prior' to factor for grouping
+data$prior <- as.factor(data$prior)
+```
+
+```{r, fig.width=10, fig.height=8}
+ggplot(data, aes(x = factor(n), y = bayes_ci_coverage, fill = "Bayesian")) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.4) +
+  geom_boxplot(aes(y = boot_ci_coverage, fill = "Bootstrap"), outlier.shape = NA, alpha = 0.4) +
+  geom_hline(yintercept = 0.95, linetype = "dashed", color = "darkgray") +
+  facet_wrap(~prior) +
+  scale_fill_manual(values = c("Bayesian" = "salmon", "Bootstrap" = "skyblue")) +
+  labs(
+    title = "Coverage Comparison of Confidence Intervals",
+    x = "Sample Size (n)",
+    y = "Coverage",
+    fill = "Method"
+  ) +
+  theme_minimal()
+
+ggplot(data, aes(x = factor(n), y = bayes_ci_mean_length, fill = "Bayesian")) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.4) +
+  geom_boxplot(aes(y = boot_ci_mean_length, fill = "Bootstrap"), outlier.shape = NA, alpha = 0.4) +
+  facet_wrap(~prior) +
+  scale_fill_manual(values = c("Bayesian" = "salmon", "Bootstrap" = "skyblue")) +
+  labs(
+    title = "Mean Confidence Interval Length by Method",
+    x = "Sample Size (n)",
+    y = "Mean CI Length",
+    fill = "Method"
+  ) +
+  theme_minimal()
+
+data_summary <- data %>%
+  group_by(n, prior) %>%
+  summarise(
+    bayes_better_cov = mean(abs(bayes_ci_coverage - 0.95) < abs(boot_ci_coverage - 0.95)),
+    bayes_shorter = mean(bayes_ci_mean_length < boot_ci_mean_length),
+    .groups = 'drop'
+  )
+
+# Optional: Scatterplot of Length vs Coverage for each method
+ggplot(data, aes(x = bayes_ci_mean_length, y = bayes_ci_coverage)) +
+  geom_point(color = "blue") +
+  labs(
+    title = "Bayesian CI: Length vs Coverage",
+    x = "Mean Length",
+    y = "Coverage"
+  ) +
+  theme_minimal()
+
+ggplot(data, aes(x = boot_ci_mean_length, y = boot_ci_coverage)) +
+  geom_point(color = "red") +
+  labs(
+    title = "Bootstrap CI: Length vs Coverage",
+    x = "Mean Length",
+    y = "Coverage"
+  ) +
+  theme_minimal()
+
+data <- data %>%
+  mutate(
+    nominal = 0.95,
+    bayes_closer = abs(bayes_ci_coverage - nominal) < abs(boot_ci_coverage - nominal),
+    bayes_shorter = bayes_ci_mean_length < boot_ci_mean_length,
+    group = paste("n =", n, "| prior =", prior)
+  )
+
+
+# Boxplot: Which method gives shorter intervals across groups
+ggplot(data, aes(x = group, fill = bayes_shorter)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion of Cases Where Bayesian Interval is Shorter",
+    y = "Proportion",
+    x = "Sample Size & Prior",
+    fill = "Bayesian Shorter?"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+ggplot(data, aes(x = group, fill = bayes_closer)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proportion Where Bayesian is Closer to Nominal Coverage",
+    y = "Proportion",
+    x = "Sample Size & Prior",
+    fill = "Bayesian Closer?"
+  ) +
+  coord_flip() +
+  theme_minimal()
+
+summary_table <- data %>%
+  group_by(prior, n) %>%
+  summarise(
+    bayes_better_coverage = mean(bayes_closer),
+    bayes_shorter_interval = mean(bayes_shorter),
+    .groups = 'drop'
+  )
+
+# Create a long format for easier plotting
+coverage_long <- data %>%
+  select(e, prior, bayes_ci_coverage, boot_ci_coverage) %>%
+  pivot_longer(cols = c(bayes_ci_coverage, boot_ci_coverage),
+               names_to = "method", values_to = "coverage") %>%
+  mutate(method = recode(method,
+                         bayes_ci_coverage = "Bayesian",
+                         boot_ci_coverage = "Bootstrap"))
+
+# Plot: Coverage vs. Effect Size (e) for both methods
+ggplot(coverage_long, aes(x = e, y = coverage, color = method)) +
+  geom_smooth(se = FALSE, size = 1.2) +
+  geom_hline(yintercept = 0.95, linetype = "dashed", color = "gray40") +
+  facet_wrap(~prior) +
+  scale_color_manual(values = c("Bayesian" = "salmon", "Bootstrap" = "skyblue")) +
+  labs(
+    title = "Percent Coverage for all e",
+    x = "Effect Size (e)",
+    y = "Coverage",
+    color = "Method"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    legend.position = "top"
+  )
+
+print(summary_table)
 ```
